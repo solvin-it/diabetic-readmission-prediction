@@ -47,30 +47,20 @@ diabetic-readmission-prediction/
 ├── requirements.txt
 ├── .gitignore
 ├── data/
-│   ├── raw/
-│   └── processed/
+│   ├── raw/                        ← original dataset (not versioned)
+│   └── processed/                  ← see Data Policy below
 ├── notebooks/
-│   ├── 01_data_understanding_and_eda.ipynb
+│   ├── 01_data_understanding.ipynb
 │   ├── 02_preprocessing_eda_and_feature_engineering.ipynb
-│   ├── 03_modeling_and_evaluation.ipynb
-│   └── 04_explainability_and_fairness.ipynb
-│   └── 05_final_summary_and_results.ipynb
+│   └── 03_modeling_and_evaluation.ipynb
 ├── src/
-│   ├── data_preprocessing.py
-│   ├── feature_engineering.py
-│   ├── train.py
-│   ├── evaluate.py
-│   └── utils.py
+│   ├── __init__.py
+│   ├── preprocess.py
+│   └── feature_engineering.py
 ├── models/
 ├── reports/
-│   ├── figures/
-│   ├── tables/
-│   └── final_report.pdf
-├── slides/
-│   ├── technical_presentation.pdf
-│   └── business_presentation.pdf
-└── app/
-````
+└── references/                     ← capstone guides (not versioned)
+```
 
 ## Notebook Guide
 
@@ -224,15 +214,29 @@ or
 jupyter lab
 ```
 
+## Data Policy
+
+Raw data is not versioned. Download the dataset from Kaggle and place it at `data/raw/diabetic_data.csv`.
+
+Only the core processed splits are committed to the repository — these are the minimal artifacts needed to run modeling without re-running preprocessing:
+
+| File | Versioned |
+|---|---|
+| `X_train.csv`, `X_test.csv` | ✓ |
+| `X_train_scaled.csv`, `X_test_scaled.csv` | ✓ |
+| `y_train.csv`, `y_test.csv` | ✓ |
+| Resampled, selected, PCA variants | ✗ — regenerate by running notebook `02` |
+| `diabetic_data_cleaned.csv`, `diabetic_data_preprocessed.csv` | ✗ — regenerate by running notebook `02` |
+
 ## Reproducibility
 
-To support reproducibility, this project aims to include:
+To support reproducibility, this project uses:
 
-* fixed random seeds where applicable
-* saved preprocessing artifacts
-* saved trained models
-* clear notebook ordering
-* requirements file for package versions
+* `RANDOM_STATE = 42` for all random seeds
+* saved core preprocessing artifacts (see Data Policy above)
+* saved trained models under `models/`
+* sequentially numbered notebooks
+* `requirements.txt` for package versions
 
 ## Deliverables
 
@@ -251,10 +255,10 @@ This repository is intended to contain the following capstone deliverables:
 Project stage:
 
 * [x] Problem selection
-* [ ] Data understanding
-* [ ] EDA
-* [ ] Preprocessing
-* [ ] Feature engineering
+* [x] Data understanding
+* [x] EDA
+* [x] Preprocessing
+* [x] Feature engineering
 * [ ] Model training
 * [ ] Explainability
 * [ ] Fairness audit
