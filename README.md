@@ -53,60 +53,59 @@ diabetic-readmission-prediction/
 │   ├── 01_data_understanding.ipynb
 │   ├── 02_preprocessing_eda_and_feature_engineering.ipynb
 │   └── 03_modeling_and_evaluation.ipynb
+│   └── 04_final_summary_and_results.ipynb
 ├── src/
 │   ├── __init__.py
 │   ├── preprocess.py
 │   └── feature_engineering.py
-├── models/
+├── models/                         ← trained model artifacts & pipeline
 ├── reports/
 └── references/                     ← capstone guides (not versioned)
 ```
 
 ## Notebook Guide
 
-### `01_data_understanding_and_eda.ipynb`
+### `01_data_understanding.ipynb`
 
-Covers:
+Implements the **Data Understanding** phase:
 
-* problem framing
-* dataset loading
-* dataset overview
-* missing values
-* duplicate checks
-* class distribution
-* initial visual analysis
-* early insights
+* Dataset background (Diabetes 130-US Hospitals, 1999–2008)
+* Problem framing as binary classification (readmitted within 30 days vs. not)
+* Dataset loading, `df.info()`, descriptive statistics
+* Data dictionary (50 columns with types, descriptions, and missingness)
+* ID mapping reference tables (admission type, discharge disposition, admission source)
 
-### `02_preprocessing_and_feature_engineering.ipynb`
+### `02_preprocessing_eda_and_feature_engineering.ipynb`
 
-Covers:
+Implements **Preprocessing, EDA & Feature Engineering**:
 
-* null handling
-* outlier treatment
-* encoding categorical variables
-* scaling
-* derived features
-* feature selection
-* dimensionality reduction if needed
+* Data cleaning — missing value handling (`?` markers), constant/identifier column removal, binary target creation
+* EDA — univariate (target, numerical, categorical), bivariate, and correlation analysis
+* 10-step feature engineering pipeline:
+  1. ICD-9 diagnosis code grouping (19 clinical chapters)
+  2. Utilization features + administrative recoding
+  3. Age one-hot encoding (10 decade bands)
+  4. Medication ordinal encoding (No / Steady / Adjusted)
+  5. Remaining categorical one-hot encoding
+  6. Stratified 80/20 train/test split
+  7. StandardScaler (11 continuous features, fitted on train only)
+  8. Mutual information feature selection (170 → 117 features)
+  9. PCA dimensionality reduction (117 → 44 components, 95.21% variance) with component loadings interpretation
+  10. SMOTE oversampling (training data only, 3 parallel tracks)
+* Feature engineering summary with artifact inventory
 
 ### `03_modeling_and_evaluation.ipynb`
 
-Covers:
+Implements **Modeling & Evaluation** (all-in-one):
 
-* baseline model implementation
-* model comparison
-* hyperparameter tuning
-* evaluation using classification metrics
-* final model selection
-
-### `04_explainability_and_fairness.ipynb`
-
-Covers:
-
-* SHAP / LIME analysis
-* feature importance interpretation
-* fairness checks across selected groups
-* limitations and mitigation discussion
+* Baseline models — Logistic Regression, Decision Tree, Random Forest, XGBoost with SMOTE-in-CV evaluation
+* Hyperparameter tuning — RandomizedSearchCV with imblearn Pipeline (SMOTE per fold)
+* PCA track comparison — tuned models evaluated on 44-component PCA features
+* Best model selection & threshold tuning — dynamic selection across all tracks, clinical threshold optimisation (F2, Youden's J, precision-constrained)
+* SHAP explainability — TreeExplainer with PCA-to-original-feature back-projection
+* Fairness analysis — performance disparity across race and gender subgroups
+* Final model summary — consolidated comparison table and model saving
+* Deployment-ready pipeline — sklearn Pipeline with clinical threshold
 
 ## Machine Learning Workflow
 
@@ -120,16 +119,16 @@ The project follows a structured ML lifecycle:
 6. **Communication through reports and presentations**
 7. **Optional deployment and MLOps extension**
 
-## Models to Be Explored
+## Models Trained
 
-Possible models include:
+The following models were trained and compared across two feature tracks (117 MI-selected features and 44 PCA components):
 
-* Logistic Regression
-* Decision Tree
-* Random Forest
-* XGBoost
-* Support Vector Machine
-* Other suitable classifiers
+* Logistic Regression (baseline)
+* Decision Tree (baseline)
+* Random Forest (baseline + tuned + PCA)
+* XGBoost (baseline + tuned + PCA)
+
+**Best model:** Random Forest — PCA (AUC-ROC ≈ 0.645, Recall ≈ 0.54 at optimised threshold)
 
 ## Evaluation Metrics
 
@@ -149,15 +148,11 @@ In this healthcare setting, missing a patient who is actually at high risk of re
 
 ## Explainability and Fairness
 
-This project includes a critical analysis of model behavior and ethical implications.
+This project includes a critical analysis of model behaviour and ethical implications, integrated into Notebook 03:
 
-Planned methods include:
-
-* SHAP
-* LIME
-* model-based feature importance
-* bias checks across available sensitive or demographic groups
-* fairness metrics such as demographic parity or equalized odds where applicable
+* **SHAP** — TreeExplainer computes per-feature contributions; for the PCA model, SHAP values are back-projected to the original 117 features via `shap_values @ pca.components_`, restoring clinical interpretability
+* **PCA component interpretation** — Loadings heatmap and clinical labels for the top 10 components (documented in Notebook 02)
+* **Fairness analysis** — AUC-ROC, recall, precision, and F1 evaluated separately for each race and gender subgroup using the optimised threshold
 
 ## Setup Instructions
 
@@ -259,12 +254,15 @@ Project stage:
 * [x] EDA
 * [x] Preprocessing
 * [x] Feature engineering
-* [ ] Model training
-* [ ] Explainability
-* [ ] Fairness audit
+* [x] Model training
+* [x] Hyperparameter tuning
+* [x] PCA track comparison
+* [x] Threshold optimisation
+* [x] Explainability (SHAP)
+* [x] Fairness audit
+* [x] Deployment-ready pipeline
 * [ ] Final report
 * [ ] Slide decks
-* [ ] Deployment
 
 ## Limitations
 
@@ -278,14 +276,25 @@ Potential limitations of the project may include:
 
 These will be explicitly discussed in the report and fairness section.
 
+## Saved Artifacts
+
+Trained model artifacts in `models/`:
+
+| File | Description |
+|---|---|
+| `best_model_random_forest_pca.joblib` | Best model: Random Forest — PCA (standalone) |
+| `best_model_metadata.json` | Model metadata & optimal threshold |
+| `deployment_pipeline.joblib` | Complete inference pipeline (FeatureSelector → Scaler → PCA → Model) + threshold |
+| `selected_features.json` | MI-selected feature names (117) |
+| `standard_scaler.joblib` | Fitted StandardScaler + continuous column list |
+| `pca_transformer.joblib` | Fitted PCA transformer (44 components) |
+
 ## Future Improvements
 
 Possible future enhancements:
 
 * deploy the best model using Flask or FastAPI
 * add experiment tracking with MLflow
-* package preprocessing and inference into a pipeline
-* include threshold optimization for hospital intervention scenarios
 * add monitoring and retraining strategy
 
 ## Author
