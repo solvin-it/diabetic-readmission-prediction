@@ -1,0 +1,21 @@
+,Mean |SHAP|
+log_emergency,0.03348
+number_emergency,0.03188
+log_inpatient,0.03042
+number_inpatient,0.0274
+had_inpatient,0.01412
+number_diagnoses,0.01255
+number_outpatient,0.01058
+discharge_disposition_id_home,0.00932
+time_in_hospital,0.00909
+had_emergency,0.00905
+discharge_disposition_id_facility,0.00835
+insulin,0.00734
+race_Caucasian,0.00687
+num_lab_procedures,0.00687
+age__80-90),0.00677
+diag_1_chapter_endocrine,0.00657
+race_AfricanAmerican,0.00618
+diag_3_chapter_endocrine,0.00607
+diag_1_chapter_symptoms,0.00593
+diag_3_chapter_circulatory,0.00576

@@ -1,0 +1,3 @@
+Group,N,Positive Rate,AUC-ROC,Recall,Precision,F1
+Female,10805,0.1155,0.6405,0.5537,0.1732,0.2638
+Male,9213,0.111,0.6491,0.5435,0.1756,0.2655

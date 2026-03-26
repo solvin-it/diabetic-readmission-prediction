@@ -6,5 +6,5 @@
   "test_precision_at_threshold": 0.1742593627724986,
   "test_f1_at_threshold": 0.2645592447226053,
   "feature_track": "PCA (44 components)",
-  "training_data": "SMOTE-balanced (141,980 records)"
+  "training_data": "SMOTE-balanced"
 }
