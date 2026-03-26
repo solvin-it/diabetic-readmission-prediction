@@ -219,3 +219,5 @@ data/processed/*
 !data/processed/X_test_scaled.csv
 !data/processed/y_train.csv
 !data/processed/y_test.csv
+
+backup/
