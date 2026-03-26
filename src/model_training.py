@@ -477,9 +477,9 @@ def optimize_threshold(
         })
 
     strategy_df = pd.DataFrame(rows).set_index("Strategy")
-    optimal_threshold = threshold_j
+    optimal_threshold = threshold_constrained
 
-    print(f"✓ Recommended threshold: {optimal_threshold:.4f} (Youden's J)")
+    print(f"✓ Recommended threshold: {optimal_threshold:.4f} (Constrained: max recall, prec≥{min_precision:.0%})")
     return {
         "strategy_df": strategy_df,
         "optimal_threshold": optimal_threshold,
@@ -700,7 +700,7 @@ def plot_pca_comparison(
             bars = ax.bar(
                 x, grp.set_index("Track").loc[["Selected (117)", "PCA (44)"], "Score"],
                 width=0.28,
-                label=["Selected (117)", "PCA (44)"] if i == 0 else ["", ""],
+                label=["Selected (117)", "PCA (44)"] if (i == 0 and j == 0) else ["", ""],
                 color=["steelblue", "coral"],
             )
         ax.set_title(metric)
@@ -719,12 +719,94 @@ def plot_pca_comparison(
     return fig
 
 
+def plot_pca_variance(
+    pca_transformer,
+    target_variance: float = 0.95,
+    save_path: Optional[pathlib.Path] = None,
+) -> Tuple[plt.Figure, int, float]:
+    """Plot per-component and cumulative variance explained by PCA.
+
+    Left subplot: per-component bar chart, highlighting components retained
+    (steelblue) vs discarded (lightgray), with a red dashed vertical cutoff.
+    Right subplot: cumulative variance curve with a red dashed horizontal
+    target line and a green dashed vertical line at the crossover component.
+
+    Returns
+    -------
+    fig : matplotlib Figure
+    n_at_target : int — number of components reaching ``target_variance``
+    variance_at_target : float — actual cumulative variance at that component
+    """
+    variance_ratio = pca_transformer.explained_variance_ratio_
+    cumulative_variance = np.cumsum(variance_ratio)
+    n_components_total = len(variance_ratio)
+    n_at_target = int(np.argmax(cumulative_variance >= target_variance) + 1)
+    variance_at_target = float(cumulative_variance[n_at_target - 1])
+
+    bar_colors = [
+        "steelblue" if i < n_at_target else "lightgray"
+        for i in range(n_components_total)
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    # ── Left: per-component variance ──────────────────────────────
+    axes[0].bar(range(1, n_components_total + 1), variance_ratio,
+                color=bar_colors, edgecolor="none", width=1.0)
+    axes[0].axvline(x=n_at_target + 0.5, color="red", linestyle="--", linewidth=1.5,
+                    label=f"Cutoff: {n_at_target} components")
+    axes[0].set(
+        xlabel="Principal Component",
+        ylabel="Individual Variance Explained",
+        title="Variance Explained by Each Principal Component",
+    )
+    axes[0].legend(loc="upper right", fontsize=9)
+    axes[0].grid(axis="y", alpha=0.3)
+
+    # ── Right: cumulative variance ─────────────────────────────────
+    x_vals = range(1, n_components_total + 1)
+    axes[1].plot(x_vals, cumulative_variance, color="steelblue", linewidth=2,
+                 label="Cumulative variance")
+    axes[1].axhline(y=target_variance, color="red", linestyle="--", linewidth=1.5,
+                    label=f"{target_variance:.0%} target")
+    axes[1].axvline(x=n_at_target, color="green", linestyle="--", linewidth=1.5,
+                    label=f"n={n_at_target} components")
+    axes[1].plot(n_at_target, variance_at_target, "r*", markersize=14, zorder=5,
+                 label=f"{variance_at_target:.2%} variance retained")
+    axes[1].annotate(
+        f"  {n_at_target} components\n  {variance_at_target:.2%} variance",
+        xy=(n_at_target, variance_at_target),
+        xytext=(n_at_target + n_components_total * 0.05, variance_at_target - 0.07),
+        fontsize=9, color="darkred",
+        arrowprops=dict(arrowstyle="->", color="darkred", lw=1.2),
+    )
+    axes[1].set(
+        xlabel="Number of Components",
+        ylabel="Cumulative Variance Explained",
+        title="Cumulative Variance Explained vs. Number of Components",
+        ylim=[0, 1.05],
+    )
+    axes[1].legend(loc="lower right", fontsize=9)
+    axes[1].grid(alpha=0.3)
+
+    pct_reduction = (1 - n_at_target / n_components_total) * 100
+    plt.suptitle(
+        f"PCA Dimensionality Reduction — {n_at_target} of {n_components_total} components "
+        f"retained ({pct_reduction:.1f}% reduction, {variance_at_target:.2%} variance)",
+        fontsize=12, fontweight="bold",
+    )
+    plt.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    return fig, n_at_target, variance_at_target
+
+
 def plot_threshold_analysis(
     best_name: str,
     threshold_result: Dict[str, Any],
     save_path: Optional[pathlib.Path] = None,
 ) -> plt.Figure:
-    """Precision-Recall-F2 curves and ROC with Youden's J marker."""
+    """Precision-Recall-F2 curves and ROC with threshold operating points."""
     precisions_pr, recalls_pr, thresholds_pr, f2_scores = threshold_result["pr_curve"]
     fpr_roc, tpr_roc, thresholds_roc, j_scores, best_j_idx = threshold_result["roc_curve"]
     thresholds = threshold_result["thresholds"]
@@ -734,24 +816,32 @@ def plot_threshold_analysis(
     axes[0].plot(thresholds_pr, precisions_pr[:-1], "b-", label="Precision", alpha=0.8)
     axes[0].plot(thresholds_pr, recalls_pr[:-1], "r-", label="Recall", alpha=0.8)
     axes[0].plot(thresholds_pr, f2_scores[:-1], "g-", label="F2 Score", alpha=0.8)
-    for label, t in [("F2", thresholds["f2"]),
-                     ("Youden's J", thresholds["youdens_j"]),
-                     ("Constrained", thresholds["constrained"])]:
-        axes[0].axvline(x=t, linestyle="--", alpha=0.5, label=f"{label} = {t:.3f}")
+    for label, t, color in [
+        ("F2",          thresholds["f2"],           "purple"),
+        ("Youden's J",  thresholds["youdens_j"],    "gray"),
+        ("Constrained", thresholds["constrained"],  "darkorange"),
+    ]:
+        axes[0].axvline(x=t, linestyle="--", color=color, alpha=0.7,
+                        label=f"{label} = {t:.3f}")
     axes[0].set_xlabel("Classification Threshold")
     axes[0].set_ylabel("Score")
     axes[0].set_title("Precision, Recall, and F2 vs Threshold")
     axes[0].legend(fontsize=8)
     axes[0].grid(alpha=0.3)
 
+    # ROC curve with both Youden's J (reference) and Constrained (selected)
     axes[1].plot(fpr_roc, tpr_roc, "b-", lw=2,
                  label=f"ROC (AUC={auc(fpr_roc, tpr_roc):.3f})")
     axes[1].plot([0, 1], [0, 1], "k--", lw=1)
-    axes[1].plot(fpr_roc[best_j_idx], tpr_roc[best_j_idx], "ro", markersize=10,
-                 label=f"Youden's J ({thresholds['youdens_j']:.3f})")
+    axes[1].plot(fpr_roc[best_j_idx], tpr_roc[best_j_idx], "o", color="gray",
+                 markersize=8, alpha=0.6, label=f"Youden's J ({thresholds['youdens_j']:.3f})")
+    constrained_roc_idx = int(np.argmin(np.abs(thresholds_roc - thresholds["constrained"])))
+    axes[1].plot(fpr_roc[constrained_roc_idx], tpr_roc[constrained_roc_idx],
+                 "r*", markersize=14, zorder=5,
+                 label=f"Constrained ({thresholds['constrained']:.3f}) ← selected")
     axes[1].set_xlabel("False Positive Rate")
     axes[1].set_ylabel("True Positive Rate")
-    axes[1].set_title("ROC Curve with Youden's J Operating Point")
+    axes[1].set_title("ROC Curve with Threshold Operating Points")
     axes[1].legend()
     axes[1].grid(alpha=0.3)
 
@@ -785,7 +875,7 @@ def plot_confusion_matrix_comparison(
         y_test, y_pred_tuned, ax=ax_cm[1],
         cmap="Blues", colorbar=False, display_labels=["No Readmit", "Readmit"],
     )
-    ax_cm[1].set_title(f"{best_name}\nYouden's J ({optimal_threshold:.3f})")
+    ax_cm[1].set_title(f"{best_name}\nOptimised threshold ({optimal_threshold:.3f})")
 
     plt.tight_layout()
     plt.suptitle("Impact of Threshold Tuning on Predictions",
