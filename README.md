@@ -388,10 +388,10 @@ Completed deliverables:
 - Fairness audit across race and gender
 - Deployment-ready pipeline artifact
 - Exported figures and tables for reporting
+- Final written report in `reports/final_report.md`
 
 Remaining packaging work:
 
-- Final written report document
 - Technical presentation slides
 - Business-facing presentation slides
 
@@ -412,7 +412,7 @@ Project stage:
 - [x] Fairness audit
 - [x] Deployment-ready pipeline
 - [x] Final summary notebook
-- [ ] Final report document
+- [x] Final report document
 - [ ] Slide decks
 
 ## Limitations
