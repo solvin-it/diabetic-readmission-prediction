@@ -1,0 +1,10 @@
+.git
+.gitignore
+.venv
+__pycache__/
+*.pyc
+notebooks/
+references/
+backup/
+.DS_Store
+*.ipynb
