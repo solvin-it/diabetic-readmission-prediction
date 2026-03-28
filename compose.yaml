@@ -1,5 +1,6 @@
 services:
   api:
+    image: fernandogonzzz/readmission-api:latest
     build:
       context: .
       dockerfile: Dockerfile.api
@@ -17,6 +18,7 @@ services:
     restart: unless-stopped
 
   ui:
+    image: fernandogonzzz/readmission-ui:latest
     build:
       context: .
       dockerfile: Dockerfile.ui
