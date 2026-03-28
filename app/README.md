@@ -38,7 +38,7 @@ Model Artifacts
 **Launch:**
 ```bash
 cd /path/to/diabetic-readmission-prediction
-docker-compose up
+docker compose up
 ```
 
 **Access:**
@@ -48,7 +48,7 @@ docker-compose up
 
 **Stop:**
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### Option 2: Local Development (Python)
@@ -255,30 +255,38 @@ Ask context-aware questions about the model and predictions using an LLM.
 **Response (200):**
 ```json
 {
-  "answer": "The model identified this patient as moderate risk primarily because of their high utilization history. The top drivers are:\n\n1. **Log Emergency** (0.045): Prior emergency department visits indicate acute health events, which historically correlate with readmission risk.\n\n2. **Number Emergency** (0.038): Multiple emergency visits suggest underlying instability or inadequate chronic disease management.\n\n3. **Log Inpatient** (0.032): Prior inpatient admissions indicate more severe episodes.\n\nThese signals collectively suggest the patient may benefit from:\n- Enhanced discharge planning\n- Scheduled follow-up appointments\n- Care coordinator engagement\n- Medication adherence support",
-  "sources": [
+  "concise_explanation": "The model flagged this patient as higher risk primarily because of prior utilization history, especially emergency and inpatient encounters. Those features were among the strongest signals in the final model and indicate a pattern associated with higher short-term readmission risk.",
+  "cautionary_note": "This output is for decision support and education only. It is not a substitute for clinical judgment.",
+  "evidence_points": [
+    "Answer generated with repository-grounded context.",
+    "Conversation memory persisted per session_id."
+  ],
+  "source_refs": [
     "reports/final_report.md",
     "README.md"
-  ],
-  "fallback_used": false,
-  "disclaimer": "AI-generated explanation for educational purposes. Verify recommendations with clinical judgment."
+  ]
 }
 ```
 
 **Response (200) with fallback (no OpenAI key):**
 ```json
 {
-  "answer": "The model uses the following key risk factors: emergency visit history, inpatient admission history, medication complexity, and discharge disposition. Review the model comparison table in the Project Summary tab for detailed feature importance.",
-  "sources": ["embedded knowledge"],
-  "fallback_used": true,
-  "disclaimer": "Fallback explanation (API key not configured). For detailed analysis, consult the project reports or model documentation."
+  "concise_explanation": "AI explanation is running in fallback mode because no API key is configured. Predicted probability is 62.00% (readmitted).",
+  "cautionary_note": "This is a decision-support educational output, not a clinical directive.",
+  "evidence_points": [
+    "Grounded by repository metadata and final report context."
+  ],
+  "source_refs": [
+    "reports/final_report.md",
+    "README.md"
+  ]
 }
 ```
 
-**Response (408) for timeout:**
+**Response (504) for timeout:**
 ```json
 {
-  "detail": "Explanation generation timed out. Please try again or consult the documentation."
+  "detail": "Explanation request timed out."
 }
 ```
 
@@ -329,7 +337,7 @@ This ensures responses stay within the scope of the trained model and documented
 
 ### Timeout Policy
 - Explanation requests default to a 60-second timeout
-- On timeout, API returns HTTP 408 with a helpful message
+- On timeout, API returns HTTP 504 with a helpful message
 
 ---
 
@@ -344,7 +352,7 @@ API_BASE_URL=http://localhost:8000
 
 # OpenAI API (for explanation chatbot; optional)
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.4-nano
 
 # Model Paths (defaults: models/deployment_pipeline.joblib, etc.)
 MODEL_PATH=models/deployment_pipeline.joblib
@@ -364,7 +372,7 @@ LOG_LEVEL=INFO
 
 # OpenAI Integration (required for explanation chatbot; see fallback behavior above)
 OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.4-nano
 
 # API Configuration
 PORT=8000
@@ -440,7 +448,7 @@ curl -X POST http://localhost:8000/v1/predict \
    ```
 3. Restart the API:
    ```bash
-   docker-compose restart api
+  docker compose restart api
    # or
    Ctrl+C and restart uvicorn
    ```
@@ -454,7 +462,7 @@ curl -X POST http://localhost:8000/v1/predict \
 **Solution**:
 1. Verify API is running: `curl http://localhost:8000/health/live`
 2. Check `API_BASE_URL` in `app/ui/services/api_client.py` or `.env`
-3. If using Docker Compose, ensure both services are running: `docker-compose ps`
+3. If using Docker Compose, ensure both services are running: `docker compose ps`
 
 ---
 
@@ -465,9 +473,9 @@ curl -X POST http://localhost:8000/v1/predict \
 # Find process using port 8000
 lsof -i :8000
 # Kill it or use a different port
-docker-compose down  # Clean up containers
+docker compose down  # Clean up containers
 # Then restart
-docker-compose up
+docker compose up
 ```
 
 ---
@@ -550,7 +558,7 @@ gcloud run deploy diabetic-ui \
 For issues or questions:
 1. Check Troubleshooting section above
 2. Review API test cases in `tests/`
-3. Consult model analysis in `../reports/Final Report.pdf` and `../notebooks/03_modeling_and_evaluation.ipynb`
+3. Consult model analysis in `../reports/final_report.md` and `../notebooks/03_modeling_and_evaluation.ipynb`
 
 ---
 

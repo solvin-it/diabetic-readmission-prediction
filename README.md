@@ -348,7 +348,7 @@ Files saved in `reports/tables/`:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/diabetic-readmission-prediction.git
+git clone https://github.com/solvin-it/diabetic-readmission-prediction.git
 cd diabetic-readmission-prediction
 ```
 
@@ -418,31 +418,8 @@ Completed deliverables:
 - Deployment-ready pipeline artifact
 - Exported figures and tables for reporting
 - Final written report in `reports/final_report.md`
-
-Remaining packaging work:
-
-- Technical presentation slides
-- Business-facing presentation slides
-
-## Current Status
-
-Project stage:
-
-- [x] Problem selection
-- [x] Data understanding
-- [x] EDA
-- [x] Preprocessing
-- [x] Feature engineering
-- [x] Model training
-- [x] Hyperparameter tuning
-- [x] PCA track comparison
-- [x] Threshold optimization
-- [x] Explainability (SHAP)
-- [x] Fairness audit
-- [x] Deployment-ready pipeline
-- [x] Final summary notebook
-- [x] Final report document
-- [ ] Slide decks
+- Technical presentation in `reports/technical_presentation.pdf`
+- Business presentation in `reports/business_presentation.pdf`
 
 ## Limitations
 
@@ -463,7 +440,7 @@ Potential extensions beyond the completed pipeline:
 - Evaluate additional model families such as LightGBM or CatBoost
 - Introduce temporal validation using earlier versus later hospital years
 - Explore fairness-aware training or threshold governance rules
-- Wrap the deployment pipeline in a Flask or FastAPI scoring service
+- Harden the deployed FastAPI and Streamlit stack with authentication, monitoring, and CI/CD
 - Add experiment tracking and monitoring with MLflow or similar tooling
 
 ## Author
