@@ -73,26 +73,55 @@ The dataset contains demographic variables, admission details, diagnoses, medica
 - Evaluate fairness and bias across sensitive groups
 - Export reproducible artifacts for downstream use in reports, slides, or deployment
 
+## Deployment: API & Streamlit UI
+
+This project includes a production-ready deployment layer that wraps the training artifacts in an async FastAPI backend and a Streamlit web interface. See [app/README.md](app/README.md) for full deployment documentation, API reference, and quick-start guides.
+
+**Quick Start:**
+```bash
+docker-compose up
+```
+This launches:
+- **API** on `http://localhost:8000` (FastAPI with async prediction and LLM-grounded explanation endpoints)
+- **UI** on `http://localhost:8501` (Streamlit with 3 tabs: Project Summary, Prediction Tool, Explanation Assistant)
+
 ## Repository Structure
 
 ```text
 diabetic-readmission-prediction/
-├── README.md
-├── requirements.txt
+├── README.md                          # This file; ML project overview
+├── app/                               # Deployment layer (API + UI)
+│   ├── README.md                      # Comprehensive deployment guide
+│   ├── api/                           # FastAPI backend
+│   │   ├── main.py                    # App entrypoint
+│   │   ├── config.py                  # Settings & environment
+│   │   ├── routers/                   # Endpoints: health, predict, explain
+│   │   ├── services/                  # Model, adapter, LLM services
+│   │   ├── schemas/                   # Pydantic request/response models
+│   │   └── core/                      # Logging, error handling
+│   ├── ui/                            # Streamlit frontend
+│   │   ├── Home.py                    # App entrypoint
+│   │   ├── tabs/                      # 3-tab UI: summary, prediction, chat
+│   │   └── services/                  # API client
+│   ├── requirements.api.txt           # API dependencies
+│   └── requirements.ui.txt            # UI dependencies
+├── compose.yaml                       # Docker Compose orchestration
+├── Dockerfile.api & Dockerfile.ui     # Container definitions
+├── requirements.txt                   # Project root dependencies
 ├── data/
-│   ├── raw/
-│   └── processed/
-├── models/
+│   ├── raw/                           # Original diabetic_data.csv
+│   └── processed/                     # Cleaned, engineered, split datasets
+├── models/                            # Trained artifacts (deployment_pipeline.joblib, etc.)
 ├── notebooks/
 │   ├── 01_data_understanding.ipynb
 │   ├── 02_preprocessing_eda_and_feature_engineering.ipynb
 │   ├── 03_modeling_and_evaluation.ipynb
 │   └── 04_final_summary_and_results.ipynb
 ├── reports/
-│   ├── figures/
-│   └── tables/
-├── references/
-└── src/
+│   ├── figures/                       # EDA, model comparison, SHAP, fairness charts
+│   └── tables/                        # CSV comparison & fairness summaries
+├── references/                        # Capstone coding templates (read-only)
+└── src/                               # Reusable ML modules (preprocessing, training, etc.)
 ```
 
 ## Notebook Guide
