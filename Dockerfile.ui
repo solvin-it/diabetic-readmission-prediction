@@ -11,6 +11,7 @@ COPY app/requirements.ui.txt /tmp/requirements.ui.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.ui.txt
 
 COPY app /app/app
+COPY reports /app/reports
 
 RUN chown -R appuser:appuser /app
 USER appuser
