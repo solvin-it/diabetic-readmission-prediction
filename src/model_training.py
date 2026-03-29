@@ -6,6 +6,8 @@ Extracted from notebooks/03_modeling_and_evaluation.ipynb to enable
 reuse in the final summary notebook and future experimentation.
 """
 
+from __future__ import annotations
+
 import re
 import json
 import pathlib
@@ -14,9 +16,21 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import joblib
-import matplotlib.pyplot as plt
-import seaborn as sns
-import shap
+
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:  # pragma: no cover - optional for API runtime
+    plt = None
+
+try:
+    import seaborn as sns
+except ModuleNotFoundError:  # pragma: no cover - optional for API runtime
+    sns = None
+
+try:
+    import shap
+except ModuleNotFoundError:  # pragma: no cover - optional for API runtime
+    shap = None
 
 from sklearn.model_selection import StratifiedKFold, cross_validate, RandomizedSearchCV
 from sklearn.linear_model import LogisticRegression
@@ -30,10 +44,24 @@ from sklearn.metrics import (
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
-from xgboost import XGBClassifier
-from imblearn.pipeline import Pipeline as ImbPipeline
-from imblearn.over_sampling import SMOTE
-from scipy.stats import randint, uniform
+
+try:
+    from xgboost import XGBClassifier
+except ModuleNotFoundError:  # pragma: no cover - optional for API runtime
+    XGBClassifier = None
+
+try:
+    from imblearn.pipeline import Pipeline as ImbPipeline
+    from imblearn.over_sampling import SMOTE
+except ModuleNotFoundError:  # pragma: no cover - optional for API runtime
+    ImbPipeline = None
+    SMOTE = None
+
+try:
+    from scipy.stats import randint, uniform
+except ModuleNotFoundError:  # pragma: no cover - optional for API runtime
+    randint = None
+    uniform = None
 
 RANDOM_STATE = 42
 
