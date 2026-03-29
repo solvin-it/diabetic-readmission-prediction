@@ -40,13 +40,28 @@ def _risk_band(probability: float, threshold: float, policy_floor: float = 0.32)
     return "moderate"
 
 
-@router.get("/model-info", response_model=ModelInfoResponse)
+@router.get(
+    "/model-info",
+    response_model=ModelInfoResponse,
+    summary="Model Metadata",
+    description="Returns model identity, operating threshold, and evaluation metrics used by the UI.",
+    response_description="Model metadata and performance metrics.",
+)
 async def model_info() -> ModelInfoResponse:
     info = await run_in_threadpool(model_service.model_info)
     return ModelInfoResponse(**info)
 
 
-@router.post("/predict", response_model=PredictResponse)
+@router.post(
+    "/predict",
+    response_model=PredictResponse,
+    summary="Predict Readmission Risk",
+    description=(
+        "Scores a single patient encounter for 30-day diabetic readmission risk and returns "
+        "probability, threshold-based label, risk band, and top driver hints."
+    ),
+    response_description="Prediction payload with probability, risk band, and explanatory driver hints.",
+)
 async def predict(payload: PredictRequest) -> PredictResponse:
     expected = await run_in_threadpool(model_service.expected_features)
     adapter = FeatureAdapter(expected_features=expected)

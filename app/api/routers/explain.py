@@ -9,7 +9,16 @@ from app.api.services.explanation_service import explanation_service
 router = APIRouter(prefix="/v1", tags=["explain"])
 
 
-@router.post("/explain", response_model=ExplainResponse)
+@router.post(
+    "/explain",
+    response_model=ExplainResponse,
+    summary="Explain Prediction or Model Behavior",
+    description=(
+        "Provides concise, evidence-grounded explanations for model outputs and general model behavior. "
+        "Intended for educational and decision-support context, not clinical directives."
+    ),
+    response_description="LLM-generated explanation with evidence points and cautionary note.",
+)
 async def explain(payload: ExplainRequest) -> ExplainResponse:
     try:
         result = await run_in_threadpool(

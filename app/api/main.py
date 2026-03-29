@@ -11,7 +11,6 @@ from app.api.config import settings
 from app.api.core.logging import configure_logging
 from app.api.routers.health import router as health_router
 from app.api.routers.predict import router as predict_router
-from app.api.routers.utility import router as utility_router
 from app.api.routers.explain import router as explain_router
 
 
@@ -58,6 +57,5 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 
 app.include_router(health_router)
-app.include_router(utility_router)
 app.include_router(predict_router)
 app.include_router(explain_router)
