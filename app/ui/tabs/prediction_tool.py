@@ -1,7 +1,6 @@
 import streamlit as st
 
 from app.ui.services.api_client import predict
-from app.ui.preset_validator import PresetManifestValidator
 
 
 def _default_payload() -> dict:
@@ -166,17 +165,6 @@ def _get_diag_chapter_index(chapter: str, position: int) -> int:
         return 0
 
 
-def _preset_manifest_key(preset_name: str | None) -> str | None:
-    """Map UI preset labels to manifest keys."""
-    if not preset_name:
-        return None
-    return {
-        "High-Risk Elderly": "high_risk",
-        "Moderate-Risk": "moderate_risk",
-        "Low-Risk": "low_risk",
-    }.get(preset_name)
-
-
 def render() -> None:
     st.subheader("Prediction Tool")
     st.caption("Estimate 30-day readmission risk from patient encounter attributes.")
@@ -312,34 +300,6 @@ def render() -> None:
             c1.metric("Risk Probability", f"{result['readmission_probability']:.2%}")
             c2.metric("Prediction", label)
             c3.metric("Risk Band", band)
-
-            active_preset = st.session_state.get("active_preset")
-            preset_key = _preset_manifest_key(active_preset)
-            if preset_key:
-                st.markdown("### Preset Consistency")
-                try:
-                    validator = PresetManifestValidator()
-                    check = validator.validate_preset(
-                        preset_key,
-                        result["readmission_probability"],
-                        result["risk_band"],
-                    )
-
-                    m1, m2, m3, m4 = st.columns(4)
-                    m1.metric("Intended Band", check.intended_band.title())
-                    m2.metric("Actual Band", result["risk_band"].title())
-                    m3.metric("Threshold", f"{result['threshold_used']:.4f}")
-                    m4.metric(
-                        "Target Probability",
-                        f"[{check.target_range[0]:.2f}, {check.target_range[1]:.2f}]",
-                    )
-
-                    if check.passes_all:
-                        st.success(f"Preset check passed: {check.message}")
-                    else:
-                        st.error(f"Preset check failed: {check.message}")
-                except Exception as exc:
-                    st.warning(f"Could not validate preset consistency: {exc}")
 
             st.info(result["interpretation"])
 
