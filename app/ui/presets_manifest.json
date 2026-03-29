@@ -10,21 +10,21 @@
       "target_probability_range": [0.50, 1.0],
       "tolerance": 0.03,
       "acceptance_criteria": "Predicted probability >= 0.50; risk_band == 'high'; prediction_label == 'likely_readmitted'",
-      "rationale": "High-risk profile motivated by top drivers: elevated emergency visits (SHAP +0.0335), inpatient admits (SHAP +0.0304), higher diagnosis burden (SHAP +0.0126). Facility discharge instead of home (SHAP-protective −0.0093)."
+      "rationale": "High-risk profile represents an elderly patient admitted through the emergency department with recent emergency and inpatient use, high diagnosis burden, polypharmacy, and discharge to facility."
     },
     "moderate_risk": {
       "intended_band": "moderate",
       "target_probability_range": [0.32, 0.4556],
       "tolerance": 0.03,
       "acceptance_criteria": "0.32 <= predicted_probability < 0.4556; risk_band == 'moderate'; prediction_label may be either",
-      "rationale": "Moderate profile balances some utilization and burden against protective factors (home discharge, fewer medications). Sits between explicit floor (0.35) and operating threshold (0.4556)."
+      "rationale": "Moderate profile represents an older patient admitted urgently after physician referral, with high diagnosis burden, elevated glucose markers, medication changes, limited prior utilization, and discharge to facility."
     },
     "low_risk": {
       "intended_band": "low",
       "target_probability_range": [0.20, 0.32],
       "tolerance": 0.03,
       "acceptance_criteria": "predicted_probability < 0.32; risk_band == 'low'; prediction_label == 'unlikely_readmitted'",
-      "rationale": "Stable well-managed diabetic: normal A1C/glucose, steady insulin, routine procedure and labs, home discharge. PCA components associate thorough routine care (procedures, labs) with lower readmission risk, producing probabilities ~0.27."
+      "rationale": "Low-risk profile represents a stable middle-aged diabetic admitted electively after physician referral, with normal A1C/glucose, steady insulin, limited burden, home discharge, and no recent acute utilization."
     }
   },
   "recalibration_trigger_conditions": [

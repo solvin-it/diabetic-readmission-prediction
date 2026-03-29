@@ -18,8 +18,8 @@ SAMPLE_PRESETS = {
         "age_band": "80-90)",
         "gender": "Female",
         "race": "Caucasian",
-        "admission_type_group": "1",
-        "admission_source_id": "7",  # Referral
+        "admission_type_group": "1",  # Emergency
+        "admission_source_id": "7",  # Emergency Room
         "discharge_disposition_group": "facility",
         "readmitted": "Yes",
         "diabetic_medication": "Yes",
@@ -39,14 +39,14 @@ SAMPLE_PRESETS = {
         "diag_1_chapter": "circulatory",
         "diag_2_chapter": "circulatory",
         "diag_3_chapter": "respiratory",
-        "description": "Elderly patient with complex medical history, multiple comorbidities, high medication burden, recent emergency and inpatient visits."
+        "description": "Elderly patient admitted through the emergency department with complex medical history, multiple comorbidities, high medication burden, and recent emergency and inpatient visits."
     },
     "Moderate-Risk": {
         "age_band": "70-80)",
         "gender": "Male",
         "race": "AfricanAmerican",
-        "admission_type_group": "1",
-        "admission_source_id": "7",  # Emergency
+        "admission_type_group": "2",  # Urgent
+        "admission_source_id": "1",  # Physician Referral
         "discharge_disposition_group": "facility",
         "readmitted": "No",
         "diabetic_medication": "Yes",
@@ -66,13 +66,13 @@ SAMPLE_PRESETS = {
         "diag_1_chapter": "circulatory",
         "diag_2_chapter": "endocrine",
         "diag_3_chapter": "respiratory",
-        "description": "Older patient with elevated comorbidity burden, high glucose and A1C, medication changes, no acute utilization, discharged to facility."
+        "description": "Older patient admitted urgently after physician referral with elevated comorbidity burden, uncontrolled diabetes markers, medication changes, limited prior utilization, and discharge to facility."
     },
     "Low-Risk": {
         "age_band": "50-60)",
         "gender": "Female",
         "race": "Caucasian",
-        "admission_type_group": "3",
+        "admission_type_group": "3",  # Elective
         "admission_source_id": "1",  # Physician Referral
         "discharge_disposition_group": "home",
         "readmitted": "No",
@@ -93,7 +93,7 @@ SAMPLE_PRESETS = {
         "diag_1_chapter": "endocrine",
         "diag_2_chapter": "other",
         "diag_3_chapter": "other",
-        "description": "Stable middle-aged diabetic with well-controlled glucose (normal A1C and serum), steady insulin, routine admission with procedure and labs, discharged home. No acute utilization history."
+        "description": "Stable middle-aged diabetic admitted electively after physician referral, with well-controlled glucose, steady insulin, limited disease burden, home discharge, and no recent acute utilization history."
     }
 }
 

@@ -123,7 +123,15 @@ def _admission_source_map(source_id: str) -> str:
     mapping = {
         "1": "referral",
         "2": "transfer",
-        "7": "referral",
+        "3": "referral",
+        "4": "transfer",
+        "5": "transfer",
+        "6": "transfer",
+        "7": "emergency_room",
+        "10": "transfer",
+        "22": "transfer",
+        "25": "transfer",
+        "26": "other",
     }
     return mapping.get(str(source_id), "referral")
 
