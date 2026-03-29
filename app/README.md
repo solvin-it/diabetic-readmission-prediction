@@ -202,18 +202,33 @@ Estimate 30-day readmission risk for a patient.
 ```json
 {
   "readmission_probability": 0.62,
-  "prediction_label": "Readmit",
+  "prediction_label": "likely_readmitted",
   "risk_band": "moderate",
   "threshold_used": 0.4556,
-  "top_drivers": {
-    "log_emergency": 0.045,
-    "number_emergency": 0.038,
-    "log_inpatient": 0.032
-  },
+  "positive_class_predicted": true,
+  "top_drivers": [
+    {
+      "feature": "number_emergency",
+      "value": 2,
+      "contribution_hint": "Prior emergency visits are the strongest predictor of readmission risk."
+    },
+    {
+      "feature": "number_inpatient",
+      "value": 1,
+      "contribution_hint": "Prior inpatient admissions are a strong predictor of readmission risk."
+    }
+  ],
   "interpretation": "Moderate readmission risk. High utilization history (emergency and inpatient visits) is the primary risk signal. Consider outpatient follow-up and care coordination.",
-  "disclaimer": "For decision support only. Not a clinical diagnosis or treatment recommendation."
+  "model_note": "Prediction is based on historical data and intended for decision support only."
 }
 ```
+
+**Risk-band policy:**
+- `high`: probability >= threshold (`0.4556`)
+- `moderate`: `0.32 <= probability < threshold`
+- `low`: probability `< 0.32`
+
+Preset buttons in the UI are calibrated against `app/ui/presets_manifest.json`, and the Prediction Tool shows intended vs actual band/probability checks after prediction.
 
 **Response (422) for invalid input:**
 ```json

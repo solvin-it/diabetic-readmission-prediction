@@ -117,38 +117,167 @@ class FeatureAdapter:
 
     @staticmethod
     def top_drivers_from_input(payload: PredictRequest) -> list[dict[str, str | int | float]]:
-        drivers: list[dict[str, str | int | float]] = []
+        """Identify the most relevant risk drivers from patient inputs.
 
+        Rules are ordered by SHAP importance (from tbl_shap_importance_v1.csv).
+        Each rule fires only when the input value is clinically notable.
+        Both risk-increasing and risk-decreasing (protective) factors are included.
+        """
+        # (shap_rank, feature, value, hint) — shap_rank used to sort, lower = more important
+        candidates: list[tuple[float, str, str | int | float, str]] = []
+
+        # --- Emergency utilization (SHAP #1-2: log_emergency 0.033, number_emergency 0.032) ---
         if payload.number_emergency > 0:
-            drivers.append({
-                "feature": "number_emergency",
-                "value": payload.number_emergency,
-                "contribution_hint": "Prior emergency utilization tends to increase risk.",
-            })
+            candidates.append((
+                1, "number_emergency", payload.number_emergency,
+                "Prior emergency visits are the strongest predictor of readmission risk."
+            ))
+        else:
+            candidates.append((
+                2, "number_emergency", 0,
+                "No prior emergency visits — this is protective (88.8% of the training population had zero)."
+            ))
+
+        # --- Inpatient utilization (SHAP #3-4: log_inpatient 0.030, number_inpatient 0.027) ---
         if payload.number_inpatient > 0:
-            drivers.append({
-                "feature": "number_inpatient",
-                "value": payload.number_inpatient,
-                "contribution_hint": "Prior inpatient utilization tends to increase risk.",
-            })
-        if payload.number_diagnoses >= 8:
-            drivers.append({
-                "feature": "number_diagnoses",
-                "value": payload.number_diagnoses,
-                "contribution_hint": "Higher diagnosis burden often reflects more complex care.",
-            })
+            candidates.append((
+                3, "number_inpatient", payload.number_inpatient,
+                "Prior inpatient admissions are a strong predictor of readmission risk."
+            ))
+        else:
+            candidates.append((
+                4, "number_inpatient", 0,
+                "No prior inpatient admissions — this is protective (66.5% of training data had zero)."
+            ))
+
+        # --- Diagnosis burden (SHAP #6: 0.013) ---
+        if payload.number_diagnoses >= 7:
+            candidates.append((
+                6, "number_diagnoses", payload.number_diagnoses,
+                "High diagnosis burden (>=7) reflects complex care needs and increases risk."
+            ))
+        elif payload.number_diagnoses <= 3:
+            candidates.append((
+                6.5, "number_diagnoses", payload.number_diagnoses,
+                "Low diagnosis count suggests simpler clinical picture, associated with lower risk."
+            ))
+
+        # --- Outpatient utilization (SHAP #7: 0.011) ---
+        if payload.number_outpatient > 0:
+            candidates.append((
+                7, "number_outpatient", payload.number_outpatient,
+                "Prior outpatient visits indicate ongoing care utilization, moderately associated with risk."
+            ))
+
+        # --- Discharge disposition (SHAP #8-9: home 0.009, facility 0.008) ---
         if payload.discharge_disposition_group == "home":
-            drivers.append({
-                "feature": "discharge_disposition_group",
-                "value": payload.discharge_disposition_group,
-                "contribution_hint": "Home discharge is frequently associated with lower relative risk.",
-            })
+            candidates.append((
+                8, "discharge_disposition_group", "home",
+                "Home discharge is a protective factor associated with lower readmission risk."
+            ))
+        elif payload.discharge_disposition_group == "facility":
+            candidates.append((
+                9, "discharge_disposition_group", "facility",
+                "Discharge to facility (not home) is associated with higher readmission risk."
+            ))
 
-        if not drivers:
-            drivers.append({
-                "feature": "utilization_pattern",
-                "value": "low",
-                "contribution_hint": "No dominant high-risk utilization pattern was detected from the submitted inputs.",
-            })
+        # --- Time in hospital (SHAP #9: 0.009) ---
+        if payload.time_in_hospital >= 5:
+            candidates.append((
+                10, "time_in_hospital", payload.time_in_hospital,
+                "Longer hospital stays (>=5 days) are associated with more complex cases."
+            ))
+        elif payload.time_in_hospital <= 2:
+            candidates.append((
+                10.5, "time_in_hospital", payload.time_in_hospital,
+                "Short hospital stay suggests lower acuity."
+            ))
 
-        return drivers[:5]
+        # --- Insulin management (SHAP #12: 0.007) ---
+        if payload.insulin in {"Down", "Up"}:
+            candidates.append((
+                12, "insulin", payload.insulin,
+                "Active insulin adjustment (dose changed) indicates less stable glycemic control."
+            ))
+        elif payload.insulin == "Steady":
+            candidates.append((
+                12.5, "insulin", "Steady",
+                "Stable insulin dosing suggests well-managed glycemic control."
+            ))
+
+        # --- Lab procedures (SHAP #14: 0.007) ---
+        if payload.num_lab_procedures >= 40:
+            candidates.append((
+                14, "num_lab_procedures", payload.num_lab_procedures,
+                "High lab procedure count may reflect diagnostic workup complexity."
+            ))
+
+        # --- Age (SHAP #15: 0.007 for 80-90) ---
+        if payload.age_band in {"80-90)", "90-100)"}:
+            candidates.append((
+                15, "age_band", payload.age_band,
+                "Advanced age (80+) is associated with higher readmission risk."
+            ))
+
+        # --- Primary diagnosis chapter (SHAP #16: 0.007 for endocrine) ---
+        if payload.diag_1_chapter == "endocrine":
+            candidates.append((
+                16, "diag_1_chapter", "endocrine",
+                "Endocrine primary diagnosis directly relates to diabetes management complexity."
+            ))
+        elif payload.diag_1_chapter == "circulatory":
+            candidates.append((
+                16.5, "diag_1_chapter", "circulatory",
+                "Circulatory primary diagnosis is common in diabetic patients and a known comorbidity."
+            ))
+
+        # --- Glucose / A1C testing (SHAP contributing via derived features) ---
+        if payload.A1Cresult == "Norm":
+            candidates.append((
+                18, "A1Cresult", "Norm",
+                "Normal A1C result indicates well-controlled blood sugar."
+            ))
+        elif payload.A1Cresult in {">7", ">8"}:
+            candidates.append((
+                18, "A1Cresult", payload.A1Cresult,
+                "Elevated A1C indicates suboptimal glycemic control over recent months."
+            ))
+
+        if payload.max_glu_serum in {">200", ">300"}:
+            candidates.append((
+                19, "max_glu_serum", payload.max_glu_serum,
+                "Elevated serum glucose indicates poor glycemic control during this admission."
+            ))
+
+        # --- Medication burden (SHAP via num_medications: 0.012) ---
+        if payload.num_medications >= 20:
+            candidates.append((
+                11, "num_medications", payload.num_medications,
+                "High medication count (>=20) reflects polypharmacy and complex management."
+            ))
+        elif payload.num_medications <= 3:
+            candidates.append((
+                11.5, "num_medications", payload.num_medications,
+                "Low medication count suggests simpler treatment regimen."
+            ))
+
+        # --- Medication change flag (SHAP via change) ---
+        if payload.change:
+            candidates.append((
+                20, "change", True,
+                "Medication change during admission may indicate treatment instability."
+            ))
+
+        # --- Diabetes medication (SHAP via diabetesMed) ---
+        if not payload.diabetesMed:
+            candidates.append((
+                21, "diabetesMed", False,
+                "No diabetes medication prescribed — may indicate diet-controlled or early-stage diabetes."
+            ))
+
+        # Sort by SHAP importance rank and return top 5
+        candidates.sort(key=lambda c: c[0])
+        return [
+            {"feature": feat, "value": val, "contribution_hint": hint}
+            for _, feat, val, hint in candidates[:5]
+        ]

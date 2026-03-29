@@ -52,6 +52,17 @@ class TestApiEndpoints(unittest.TestCase):
         self.assertIn("risk_band", data)
         self.assertIn("threshold_used", data)
 
+    def test_predict_risk_band_aligns_with_threshold(self) -> None:
+        with patch("app.api.services.model_service.model_service.expected_features", return_value=["time_in_hospital"]):
+            with patch("app.api.services.model_service.model_service.predict_proba", return_value=0.3677):
+                with patch("app.api.services.model_service.model_service.threshold", return_value=0.4556):
+                    response = self.client.post("/v1/predict", json=self._valid_payload())
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["prediction_label"], "unlikely_readmitted")
+        self.assertEqual(data["risk_band"], "moderate")
+
     def test_predict_validation(self) -> None:
         payload = self._valid_payload()
         payload["age_band"] = "999-1000)"

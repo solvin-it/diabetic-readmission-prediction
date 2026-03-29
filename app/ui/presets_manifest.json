@@ -1,0 +1,43 @@
+{
+  "manifest_version": "1.0",
+  "calibration_date": "2026-03-29",
+  "calibration_threshold": 0.4556,
+  "policy_floor": 0.32,
+  "notes": "Floor empirically set to 0.32. PCA transformation creates non-monotonic feature effects: minimal patients (0 procedures, 0 labs) score ~0.44, while well-managed patients (routine procedures, labs, controlled glucose) score ~0.27. Low-risk presets use the latter profile.",
+  "presets": {
+    "high_risk": {
+      "intended_band": "high",
+      "target_probability_range": [0.50, 1.0],
+      "tolerance": 0.03,
+      "acceptance_criteria": "Predicted probability >= 0.50; risk_band == 'high'; prediction_label == 'likely_readmitted'",
+      "rationale": "High-risk profile motivated by top drivers: elevated emergency visits (SHAP +0.0335), inpatient admits (SHAP +0.0304), higher diagnosis burden (SHAP +0.0126). Facility discharge instead of home (SHAP-protective −0.0093)."
+    },
+    "moderate_risk": {
+      "intended_band": "moderate",
+      "target_probability_range": [0.32, 0.4556],
+      "tolerance": 0.03,
+      "acceptance_criteria": "0.32 <= predicted_probability < 0.4556; risk_band == 'moderate'; prediction_label may be either",
+      "rationale": "Moderate profile balances some utilization and burden against protective factors (home discharge, fewer medications). Sits between explicit floor (0.35) and operating threshold (0.4556)."
+    },
+    "low_risk": {
+      "intended_band": "low",
+      "target_probability_range": [0.20, 0.32],
+      "tolerance": 0.03,
+      "acceptance_criteria": "predicted_probability < 0.32; risk_band == 'low'; prediction_label == 'unlikely_readmitted'",
+      "rationale": "Stable well-managed diabetic: normal A1C/glucose, steady insulin, routine procedure and labs, home discharge. PCA components associate thorough routine care (procedures, labs) with lower readmission risk, producing probabilities ~0.27."
+    }
+  },
+  "recalibration_trigger_conditions": [
+    "Deployed operating threshold changes (e.g., after model retraining)",
+    "Best model artifact replaced (deployment_pipeline.joblib hash changes)",
+    "Feature engineering or selection parameters change",
+    "Data distribution materially shifts (monitored via fairness/calibration metrics)"
+  ],
+  "feature_driver_directionality": {
+    "number_emergency": {"shap": 0.0319, "direction": "increases_risk", "distribution": "88.8% zeros; median 0"},
+    "number_inpatient": {"shap": 0.0274, "direction": "increases_risk", "distribution": "66.5% zeros; median 0"},
+    "num_diagnoses": {"shap": 0.0126, "direction": "increases_risk", "distribution": "median ~7; range 1-14"},
+    "num_medications": {"shap": 0.012, "direction": "increases_risk", "distribution": "median ~13; range 1-81"},
+    "discharge_disposition_group_home": {"shap": -0.0093, "direction": "decreases_risk", "distribution": "~18% home discharges"}
+  }
+}

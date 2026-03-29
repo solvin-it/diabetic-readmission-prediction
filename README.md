@@ -85,6 +85,23 @@ This launches:
 - **API** on `http://localhost:8000` (FastAPI with async prediction and LLM-grounded explanation endpoints)
 - **UI** on `http://localhost:8501` (Streamlit with 3 tabs: Project Summary, Prediction Tool, Explanation Assistant)
 
+### Risk-Band Policy and Preset Calibration
+
+The deployed API uses a threshold-relative risk-band policy:
+
+- `high`: probability >= operating threshold (`0.4556`)
+- `moderate`: `0.32 <= probability < 0.4556`
+- `low`: probability `< 0.32`
+
+Preset definitions in the UI are validated against `app/ui/presets_manifest.json`.
+To run the preset drift gate locally:
+
+```bash
+python scripts/calibrate_presets.py true
+```
+
+The command fails with a non-zero exit code when any preset drifts outside the manifest's intended risk band or probability range.
+
 ## Repository Structure
 
 ```text

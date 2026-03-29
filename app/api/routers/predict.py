@@ -10,12 +10,34 @@ from app.api.services.model_service import model_service
 router = APIRouter(prefix="/v1", tags=["predict"])
 
 
-def _risk_band(probability: float) -> str:
-    if probability < 0.10:
+def _risk_band(probability: float, threshold: float, policy_floor: float = 0.32) -> str:
+    """Assign risk band using threshold-relative policy with explicit floor.
+
+    Risk bands are assigned relative to the deployed operating threshold to ensure
+    consistency: "high" band only appears when prediction label is "likely_readmitted".
+
+    Band assignments:
+    - high: probability >= threshold (positive class predicted)
+    - moderate: policy_floor <= probability < threshold (uncertain range)
+    - low: probability < policy_floor (negative class predicted with margin)
+
+    Args:
+        probability: Model's predicted probability of readmission.
+        threshold: Deployed operating threshold (0.4556 for constrained strategy).
+        policy_floor: Explicit lower bound for moderate band (default 0.32, calibrated from
+                     achievable preset outputs; targets span 0.30-0.31 with tolerance).
+
+    Returns:
+        Risk band label: "high", "moderate", or "low".
+
+    See docs/RISK_BAND_POLICY.md for full rationale and recalibration procedure.
+    """
+    if probability >= threshold:
+        return "high"
+
+    if probability < policy_floor:
         return "low"
-    if probability <= 0.20:
-        return "moderate"
-    return "high"
+    return "moderate"
 
 
 @router.get("/model-info", response_model=ModelInfoResponse)
@@ -49,7 +71,7 @@ async def predict(payload: PredictRequest) -> PredictResponse:
         readmission_probability=round(probability, 6),
         threshold_used=round(threshold, 6),
         positive_class_predicted=predicted_positive,
-        risk_band=_risk_band(probability),
+        risk_band=_risk_band(probability, threshold),
         top_drivers=drivers,
         interpretation=interpretation,
         model_note="Prediction is based on historical data and intended for decision support only.",

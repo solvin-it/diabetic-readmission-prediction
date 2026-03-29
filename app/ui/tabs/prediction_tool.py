@@ -1,6 +1,7 @@
 import streamlit as st
 
 from app.ui.services.api_client import predict
+from app.ui.preset_validator import PresetManifestValidator
 
 
 def _default_payload() -> dict:
@@ -39,6 +40,54 @@ def _admission_source_map(source_id: str) -> str:
         "7": "referral",
     }
     return mapping.get(source_id, "referral")
+
+
+def _to_bool(value: object, default: bool = True) -> bool:
+    """Coerce typical preset values to boolean for toggle fields."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        norm = value.strip().lower()
+        if norm in {"yes", "true", "1", "y"}:
+            return True
+        if norm in {"no", "false", "0", "n"}:
+            return False
+    return default
+
+
+def _normalize_age_band(age_band: str) -> str:
+    """Normalize preset age band values to model form categories."""
+    value = age_band.strip()
+    if value.endswith(")"):
+        return value
+    return f"{value})"
+
+
+def _normalize_a1c(value: str) -> str:
+    """Normalize alternate A1C labels from presets."""
+    norm = value.strip().lower()
+    if norm in {"<7", "norm", "normal"}:
+        return "Norm"
+    if norm in {">7", ">8", "none"}:
+        return value if value in {">7", ">8", "none"} else value.capitalize()
+    return "none"
+
+
+def _normalize_max_glu(value: str) -> str:
+    """Normalize alternate glucose labels from presets."""
+    norm = value.strip().lower()
+    if norm in {"norm", "normal"}:
+        return "Norm"
+    if norm in {">200", ">300", "none"}:
+        return value if value in {">200", ">300", "none"} else value.capitalize()
+    return "none"
+
+
+def _normalize_specialty(value: str) -> str:
+    """Normalize specialty aliases used in presets."""
+    if value == "GeneralPractice":
+        return "Family/GeneralPractice"
+    return value
 
 
 def _get_specialty_index(specialty: str) -> int:
@@ -117,6 +166,17 @@ def _get_diag_chapter_index(chapter: str, position: int) -> int:
         return 0
 
 
+def _preset_manifest_key(preset_name: str | None) -> str | None:
+    """Map UI preset labels to manifest keys."""
+    if not preset_name:
+        return None
+    return {
+        "High-Risk Elderly": "high_risk",
+        "Moderate-Risk": "moderate_risk",
+        "Low-Risk": "low_risk",
+    }.get(preset_name)
+
+
 def render() -> None:
     st.subheader("Prediction Tool")
     st.caption("Estimate 30-day readmission risk from patient encounter attributes.")
@@ -128,11 +188,14 @@ def render() -> None:
         payload = _default_payload()
         # Map preset fields to form fields
         payload.update({
-            "age_band": preset.get("age_band", payload["age_band"]),
+            "age_band": _normalize_age_band(str(preset.get("age_band", payload["age_band"]))),
             "gender": preset.get("gender", payload["gender"]),
             "race": preset.get("race", payload["race"]),
+            "admission_type_group": str(preset.get("admission_type_group", payload["admission_type_group"])),
             "admission_source_group": _admission_source_map(preset.get("admission_source_id", "1")),
+            "discharge_disposition_group": str(preset.get("discharge_disposition_group", payload["discharge_disposition_group"])),
             "time_in_hospital": preset.get("time_in_hospital", payload["time_in_hospital"]),
+            "num_lab_procedures": preset.get("num_lab_procedures", payload["num_lab_procedures"]),
             "num_medications": preset.get("num_medications", payload["num_medications"]),
             "num_procedures": preset.get("number_procedures", payload["num_procedures"]),
             "number_diagnoses": preset.get("number_diagnoses", payload["number_diagnoses"]),
@@ -140,10 +203,14 @@ def render() -> None:
             "number_inpatient": preset.get("number_inpatient", payload["number_inpatient"]),
             "number_emergency": preset.get("number_emergency", payload["number_emergency"]),
             "insulin": preset.get("insulin", payload["insulin"]),
-            "max_glu_serum": preset.get("max_glu_serum", payload["max_glu_serum"]),
-            "A1Cresult": preset.get("A1Cresult", payload["A1Cresult"]),
-            "diabetesMed": preset.get("diabetic_medication", payload["diabetesMed"]),
-            "medical_specialty": preset.get("specialty", payload["medical_specialty"]),
+            "max_glu_serum": _normalize_max_glu(str(preset.get("max_glu_serum", payload["max_glu_serum"]))),
+            "A1Cresult": _normalize_a1c(str(preset.get("A1Cresult", payload["A1Cresult"]))),
+            "change": _to_bool(preset.get("change", payload["change"]), default=payload["change"]),
+            "diabetesMed": _to_bool(preset.get("diabetic_medication", payload["diabetesMed"]), default=payload["diabetesMed"]),
+            "medical_specialty": _normalize_specialty(str(preset.get("specialty", payload["medical_specialty"]))),
+            "diag_1_chapter": str(preset.get("diag_1_chapter", payload["diag_1_chapter"])),
+            "diag_2_chapter": str(preset.get("diag_2_chapter", payload["diag_2_chapter"])),
+            "diag_3_chapter": str(preset.get("diag_3_chapter", payload["diag_3_chapter"])),
         })
     else:
         payload = _default_payload()
@@ -159,9 +226,24 @@ def render() -> None:
             payload["age_band"] = st.selectbox("Age band", ["0-10)", "10-20)", "20-30)", "30-40)", "40-50)", "50-60)", "60-70)", "70-80)", "80-90)", "90-100)"], index=_get_age_band_index(payload["age_band"]))
             payload["gender"] = st.selectbox("Gender", ["Female", "Male"], index=0 if payload["gender"] == "Female" else 1)
             payload["race"] = st.selectbox("Race", ["AfricanAmerican", "Asian", "Caucasian", "Other", "Unknown"], index=_get_race_index(payload["race"]))
-            payload["admission_type_group"] = st.selectbox("Admission type", ["1", "2", "3", "4", "Unknown"], index=0)
-            payload["admission_source_group"] = st.selectbox("Admission source", ["emergency_room", "referral", "transfer", "other"], index=1 if payload["admission_source_group"] == "referral" else 0)
-            payload["discharge_disposition_group"] = st.selectbox("Discharge disposition", ["facility", "home", "inpatient", "other"], index=1)
+            admission_type_options = ["1", "2", "3", "4", "Unknown"]
+            payload["admission_type_group"] = st.selectbox(
+                "Admission type",
+                admission_type_options,
+                index=admission_type_options.index(payload["admission_type_group"]) if payload["admission_type_group"] in admission_type_options else 0,
+            )
+            admission_source_options = ["emergency_room", "referral", "transfer", "other"]
+            payload["admission_source_group"] = st.selectbox(
+                "Admission source",
+                admission_source_options,
+                index=admission_source_options.index(payload["admission_source_group"]) if payload["admission_source_group"] in admission_source_options else 0,
+            )
+            discharge_options = ["facility", "home", "inpatient", "other"]
+            payload["discharge_disposition_group"] = st.selectbox(
+                "Discharge disposition",
+                discharge_options,
+                index=discharge_options.index(payload["discharge_disposition_group"]) if payload["discharge_disposition_group"] in discharge_options else 1,
+            )
             payload["A1Cresult"] = st.selectbox("A1C result", [">7", ">8", "Norm", "none"], index=_get_a1c_index(payload["A1Cresult"]))
             payload["max_glu_serum"] = st.selectbox("Max glucose serum", [">200", ">300", "Norm", "none"], index=_get_glu_index(payload["max_glu_serum"]))
             payload["insulin"] = st.selectbox("Insulin", ["No", "Steady", "Down", "Up"], index=_get_insulin_index(payload["insulin"]))
@@ -230,6 +312,34 @@ def render() -> None:
             c1.metric("Risk Probability", f"{result['readmission_probability']:.2%}")
             c2.metric("Prediction", label)
             c3.metric("Risk Band", band)
+
+            active_preset = st.session_state.get("active_preset")
+            preset_key = _preset_manifest_key(active_preset)
+            if preset_key:
+                st.markdown("### Preset Consistency")
+                try:
+                    validator = PresetManifestValidator()
+                    check = validator.validate_preset(
+                        preset_key,
+                        result["readmission_probability"],
+                        result["risk_band"],
+                    )
+
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Intended Band", check.intended_band.title())
+                    m2.metric("Actual Band", result["risk_band"].title())
+                    m3.metric("Threshold", f"{result['threshold_used']:.4f}")
+                    m4.metric(
+                        "Target Probability",
+                        f"[{check.target_range[0]:.2f}, {check.target_range[1]:.2f}]",
+                    )
+
+                    if check.passes_all:
+                        st.success(f"Preset check passed: {check.message}")
+                    else:
+                        st.error(f"Preset check failed: {check.message}")
+                except Exception as exc:
+                    st.warning(f"Could not validate preset consistency: {exc}")
 
             st.info(result["interpretation"])
 
